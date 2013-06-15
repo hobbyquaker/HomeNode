@@ -3,8 +3,19 @@ var net = require('net');
 var binary = require('binary');
 
 var binrpc = {
+    methods: {
+        "system.multicall": function (data) {
+            console.log("method system.multicall");
+            console.log(data);
+
+        },
+        "event": function (data) {
+            console.log("method event");
+            console.log(data);
+        }
+    },
     debug: function (str) {
-        console.log(str);
+        //console.log(str);
     },
     request: function (method, data, callback) {
         console.log({methodName:method,data:JSON.stringify(data)});
@@ -54,8 +65,8 @@ var binrpc = {
         return buf;
     },
     parseData: function (data) {
-        console.log("parseData data.length="+data.length);
-        console.log(data);
+        //console.log("parseData data.length="+data.length);
+        //console.log(data);
         if (!data) { return };
         var res = binary.parse(data)
             .word32bu("dataType")
@@ -80,7 +91,7 @@ var binrpc = {
                         .buffer("key", "keylength")
                         .buffer("rest", data.length)
                         .vars;
-                    console.log(key.key.toString());
+                    //console.log(key.key.toString());
 
 
                     elements = key.rest;
@@ -90,7 +101,7 @@ var binrpc = {
 
 
                 }
-                console.log(result);
+                //console.log(result);
                 return {content: result, rest: elements};
 
                 break;
@@ -171,10 +182,10 @@ var binrpc = {
                 .buffer("body", "msgSize")
                 .vars
             ;
-console.log("parseResponse data.length="+data.length+" msgSize="+vars.msgSize+ " body.length="+vars.body.length);
-        if (vars.head.toString() !== "Bin") {
-            console.log("malformed header :-(");
-            return false;
+//console.log("parseResponse data.length="+data.length+" msgSize="+vars.msgSize+ " body.length="+vars.body.length);
+        if (vars.head.toString() != "Bin") {
+            console.log("malformed header :-( " + vars.head.toString() );
+            //return false;
         }
 
         vars.head = vars.head.toString();
@@ -191,6 +202,10 @@ console.log("parseResponse data.length="+data.length+" msgSize="+vars.msgSize+ "
                 break;
         }
 
+        if (res.rest.length > 0) {
+            console.log("rest..... :-(");
+            console.log(res.rest);
+        }
         return res.content;
 
     },
@@ -203,7 +218,7 @@ console.log("parseResponse data.length="+data.length+" msgSize="+vars.msgSize+ "
                 .vars
             ;
 
-        if (vars.head.toString() !== "Bin") {
+        if (vars.head.toString() != "Bin") {
             console.log("malformed header :-(");
             return false;
         }
@@ -226,11 +241,15 @@ console.log("parseResponse data.length="+data.length+" msgSize="+vars.msgSize+ "
 
                 var res = binrpc.parseData(method.body);
 
-
-
-                console.log(JSON.stringify({methodName:method.name.toString(),params:res.content}));
+                if (binrpc.methods[method.name.toString()]) {
+                    binrpc.methods[method.name.toString()](res.content);
+                } else {
+                    console.log("method " + method.name.toString() + " nicht gefunden :-(");
+                }
+                //console.log(JSON.stringify({methodName:method.name.toString(),params:res.content}));
                 break;
-
+            default:
+                console.log("hier läuft was schief :(");
         }
 
         return vars;
@@ -240,7 +259,7 @@ console.log("parseResponse data.length="+data.length+" msgSize="+vars.msgSize+ "
         var chunk = 0;
         var length;
 
-        var client = net.createConnection(8701, '172.16.23.3',
+        var client = net.createConnection(2001, '172.16.23.3',
             function() { //'connect' listener
                 console.log('sending:');
                 console.log(buf);
@@ -248,7 +267,7 @@ console.log("parseResponse data.length="+data.length+" msgSize="+vars.msgSize+ "
             });
 
         client.on('data', function(data) {
-            console.log("receiving chunk "+chunk+" data.length="+data.length);
+            //console.log("receiving chunk "+chunk+" data.length="+data.length);
 
             if (chunk == 0) {
                 var vars = binary.parse(data)
@@ -264,7 +283,7 @@ console.log("parseResponse data.length="+data.length+" msgSize="+vars.msgSize+ "
             }
             chunk = chunk + 1;
 
-            console.log("response.length="+response.length);
+           // console.log("response.length="+response.length);
 
             if (response.length >= (length + 8)) {
                 client.end();
@@ -298,6 +317,11 @@ console.log("parseResponse data.length="+data.length+" msgSize="+vars.msgSize+ "
 //var buf = binrpc.buildRequest("listDevices");
 
 var server = net.createServer(function(c) {
+    var receiver = new Buffer(0);
+    var chunk = 0;
+    var length;
+
+
     console.log('Server connected');
 
     c.on('end', function() {
@@ -305,25 +329,55 @@ var server = net.createServer(function(c) {
     });
 
     c.on('data', function (data) {
-        var res = binary.parse(data)
-            .buffer("content", data.length)
-            .vars;
+        //console.log("server receiving:");
+        //console.log(data);
 
-        //console.log(res.content);
 
-        binrpc.parseRequest(res.content);
+        if (chunk == 0) {
+            var vars = binary.parse(data)
+                .buffer("head", 3)
+                .word8("msgType")
+                .word32bu("msgSize")
+                .vars;
+            length = vars.msgSize;
+            receiver = data;
+        } else {
+            receiver = Buffer.concat([receiver, data]);
 
-        var buf = Put()
-                .put(new Buffer('Bin', 'ascii'))
-                .word8(1)
-                .word32be(8) // Msg Size
-                .word32be(3)
-                .word32be(0)
-                .buffer()
-            ;
-        console.log("responding: ");
-        console.log("buf");
-        c.write(buf);
+        }
+        chunk = chunk + 1;
+
+        //console.log("receiver.length="+receiver.length);
+
+        if (receiver.length >= (length + 8)) {
+            //var res = binrpc.parseResponse(receiver);
+            //if (callback) { callback(res); }
+
+
+            //console.log(res.content);
+
+            binrpc.parseRequest(receiver);
+
+            var buf = Put()
+                    .put(new Buffer('Bin', 'ascii'))
+                    .word8(1)
+                    .word32be(8) // Msg Size
+                    .word32be(3)
+                    .word32be(0)
+                    .buffer()
+                ;
+            console.log("responding: ");
+            console.log(buf);
+            c.write(buf);
+
+        }
+
+
+
+
+
+
+
 
     });
 
@@ -341,15 +395,13 @@ process.on('SIGINT', function () {
 
 
 
-
-binrpc.request("listDevices", [], function(res) {
-    console.log("CALLBACK!");
-    console.log(res);
-});
 /*
-binrpc.request("system.listMethods", [], function(res) {
-    console.log("CALLBACK!");
+binrpc.request("listDevices", [], function(res) {
     console.log(res);
 });
-//binrpc.request("init", ["xmlrpc_bin://172.16.23.153:8124", "BinNode"]);
-*/
+
+binrpc.request("system.listMethods", [], function(res) {
+    console.log(res);
+});*/
+
+binrpc.request("init", ["xmlrpc_bin://172.16.23.153:8124", "BinNode"]);
