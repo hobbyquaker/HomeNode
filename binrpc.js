@@ -17,7 +17,7 @@ var binrpc = {
                 if (binrpc.methods[data[i].methodName]) {
                     binrpc.methods[data[i].methodName](data[i].params);
                 } else {
-                   binrpc.debug(0,"method " + data[i].methodName + " nicht gefunden :-(");
+                   console.log("method " + data[i].methodName + " nicht gefunden :-(");
                 }
             }
 
@@ -205,7 +205,7 @@ var binrpc = {
             ;
 //console.log("parseResponse data.length="+data.length+" msgSize="+vars.msgSize+ " body.length="+vars.body.length);
         if (vars.head.toString() != "Bin") {
-           binrpc.debug(0,"malformed header :-( " + vars.head.toString() );
+           console.log("malformed header :-( " + vars.head.toString() );
             //return false;
         }
 
@@ -224,7 +224,7 @@ var binrpc = {
         }
 
         if (res.rest.length > 0) {
-           binrpc.debug(0,"rest..... :-(");
+           console.log("rest..... :-(");
            binrpc.debug(0,res.rest);
         }
         return res.content;
@@ -240,7 +240,7 @@ var binrpc = {
             ;
 
         if (vars.head.toString() != "Bin") {
-           binrpc.debug(0,"malformed header :-(");
+            console.log("malformed header :-(");
             return false;
         }
 
@@ -278,7 +278,7 @@ var binrpc = {
                 if (binrpc.methods[method.name.toString()]) {
                     binrpc.methods[method.name.toString()](res.content);
                 } else {
-                   binrpc.debug(0,"method " + method.name.toString() + " nicht gefunden :-(");
+                    console.log("method " + method.name.toString() + " nicht gefunden :-(");
                 }
                 //console.log(JSON.stringify({methodName:method.name.toString(),params:res.content}));
                 break;
@@ -351,10 +351,10 @@ var binrpc = {
                 var chunk = 0;
                 var length;
 
-               binrpc.debug(0,'Server connected');
+               binrpc.debug(0,'client connected');
 
                 c.on('end', function() {
-                   binrpc.debug(0,'Server disconnected');
+                   binrpc.debug(0,'client disconnected');
                 });
 
                 c.on('data', function (data) {
@@ -401,7 +401,7 @@ var binrpc = {
 
             });
             server.listen(binrpc.options.listenPort, function() { //'listening' listener
-               binrpc.debug(0,'RPC Server listening on Port '+binrpc.options.listenPort);
+               console.log('RPC server listening on port '+binrpc.options.listenPort);
             });
         }
         // RPC Init anmelden
@@ -413,14 +413,18 @@ var binrpc = {
                 binrpc.serverRunning = false;
                 if (argv.wired) {
                     binrpc.request(2000, "init", ["xmlrpc_bin://"+binrpc.options.listenIp+":"+binrpc.options.listenPort, ""])
+                    console.log("stopping rs485 init");
                 }
                 if (argv.rf) {
                     binrpc.request(2001, "init", ["xmlrpc_bin://"+binrpc.options.listenIp+":"+binrpc.options.listenPort, ""])
+                    console.log("stopping rf init");
                 }
                 if (argv.cux) {
                     binrpc.request(8701, "init", ["xmlrpc_bin://"+binrpc.options.listenIp+":"+binrpc.options.listenPort, ""])
+                    console.log("stopping cux init");
                 }
                 server.close();
+                console.log("RPC Server stopped");
             }
         });
     }
@@ -434,6 +438,7 @@ if (argv.wired) {
         listenPort: argv.lport,
         identifier: argv.identifier || "BidCos-Wired"
     });
+    console.log("starting rs485 init");
 }
 
 if (argv.rf) {
@@ -443,7 +448,9 @@ if (argv.rf) {
         listenIp: argv.listen,
         listenPort: argv.lport,
         identifier: argv.identifier || "BidCos-RF"
+
     });
+    console.log("starting rf init");
 }
 
 if (argv.cux) {
@@ -454,6 +461,7 @@ if (argv.cux) {
         listenPort: argv.lport,
         identifier: argv.identifier || "CUxD"
     });
+    console.log("starting cux init");
 }
 
 
