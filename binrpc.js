@@ -1,12 +1,22 @@
-var Put = require('put');
-var net = require('net');
-var binary = require('binary');
-var argv = require('optimist').
+var Put = require('put'),
+    net = require('net'),
+    binary = require('binary'),
+
+    argv = require('optimist').
     usage('Usage: $0 --ccu [ip] --listen [ip] --lport [num] --rf --hs485 --cux --debug [num]').
     demand(['listen','lport', 'ccu']).
     argv;
 
+var jayson = require("jayson");
+
+// create a client
+var client = jayson.client.http({
+    port: 3000,
+    hostname: 'localhost'
+});
+
 var binrpc = {
+    prefix: "hm1.",
     options: {},
     serverRunning: false,
     methods: {
@@ -27,9 +37,14 @@ var binrpc = {
             binrpc.debug(0,data);
 
             var output = {};
-            output[data[0]+"."+data[1]+"."+data[2]] = data[3];
+            output[binrpc.prefix+data[0]+"."+data[1]+"."+data[2]] = data[3];
 
             console.log(output);
+
+            client.request('setValue', [binrpc.prefix+data[0]+"."+data[1]+"."+data[2], data[3]], function(err, error, response) {
+                if(err) throw err;
+                console.log("jsonrpc response "+response);
+            }, true);
 
         }
     },
@@ -425,6 +440,7 @@ var binrpc = {
                 }
                 server.close();
                 console.log("RPC Server stopped");
+
             }
         });
     }
@@ -436,7 +452,7 @@ if (argv.wired) {
         connectPort: 2000,
         listenIp: argv.listen,
         listenPort: argv.lport,
-        identifier: argv.identifier || "BidCos-Wired"
+        identifier: argv.identifier || "BidCos-Wired",
     });
     console.log("starting rs485 init");
 }
