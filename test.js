@@ -1,12 +1,33 @@
-var o = {};
+var binrpc = require("./binrpc.js"),
+    winston = require('winston');
 
-Object.observe(o, function(changes) {
-    changes.forEach(function(change, i) {
-        console.log(change.name, change.type, change.object[change.name]);
-    });
+var devices = {
+    hm1: {
+
+    }
+};
+
+var hm1 = new binrpc({
+    ccuIp: "172.16.23.3",
+    listenIp: "172.16.23.153",
+    listenPort: 3000,
+    prefix: "hm1",
+    methods: {
+        event: function (obj) {
+            //winston.info("event: " + JSON.stringify(obj));
+        },
+        newDevices: function (data) {
+            //console.log(data);
+            //devices.hm1[data[0]] = data[1];
+            //console.log(devices.hm1);
+        }
+    }
 });
 
-// 3 changes, as a list of changes. Similar to how Mutation Observers work.
-o.first = 'Eric';
-o.last = 'Bidelman';
-delete o.first;
+hm1.init({
+    wired: true,
+    rf: true,
+    cuxd: true
+});
+
+
