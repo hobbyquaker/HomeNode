@@ -1,6 +1,6 @@
 
 
-var homematic = require("./homematic.js");
+var homematic = require("./xmlrpc.js");
 
 var hm = new homematic({ccuAddress:"172.16.23.3"});
 

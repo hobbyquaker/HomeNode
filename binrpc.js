@@ -1,6 +1,10 @@
 var Put = require('put'),
     net = require('net'),
     binary = require('binary');
+
+var logger = require('./logger.js');
+
+
     /*logger = require('winston');
 
 
@@ -11,81 +15,7 @@ var Put = require('put'),
         colorize: true
     });
     */
-var logger = {
-    level: 2,
-    timestamp: true,
-    colors: {
-        "5": '\u001b[31m',
-        "4": '\u001b[33m',
-        "3": '\u001b[32m',
-        "2": '\u001b[34m',
-        reset: '\u001b[0m'
-    },
-    text: {
-        "0": "silly",
-        "1": "debug",
-        "2": "verbose",
-        "3": "info",
-        "4": "warn",
-        "5": "error"
-    },
-    maxLength: 224,
 
-    silly: function(obj) {
-        this.log(0, obj);
-    },
-    debug: function(obj) {
-        this.log(1, obj);
-    },
-    verbose: function(obj) {
-        this.log(2, obj);
-    },
-    info: function(obj) {
-        this.log(3, obj);
-    },
-    warn: function(obj) {
-        this.log(4, obj);
-    },
-    error: function(obj) {
-        this.log(5, obj);
-    },
-    log: function(level, obj) {
-        if (level >= this.level) {
-            var str;
-            if (typeof obj !== "string") {
-                str = JSON.stringify(obj);
-            } else {
-                str = obj;
-            }
-
-            if (this.colors[level]) {
-                str = this.colors[level] + this.text[level] + this.colors["reset"] + ": " + str;
-            } else {
-                str = this.text[level] + ": " + str;
-            }
-
-            if (this.timestamp) {
-                var ts = new Date();
-
-
-                str =   ts.getFullYear() + '-' +
-                        ("0" + (ts.getMonth() + 1).toString(10)).slice(-2) + '-' +
-                        ("0" + (ts.getDate() + 1).toString(10)).slice(-2) + ' ' +
-                        ("0" + (ts.getHours()).toString(10)).slice(-2) + ':' +
-                        ("0" + (ts.getMinutes()).toString(10)).slice(-2) + ':' +
-                        ("0" + (ts.getSeconds()).toString(10)).slice(-2) + "." +
-                        ("00" + (ts.getMilliseconds()).toString(10)).slice(-3) + " " +
-                            str;
-            }
-
-            if (str.length > this.maxLength) {
-                str = str.slice(0, this.maxLength - 4) + " ...";
-            }
-
-            console.log(str);
-        }
-    }
-}
 var binrpc = function(options) {
     logger.info("binrpc.js version "+this.version+" - HomeMatic xmlrpc_bin adapter for HomeNodes");
     logger.info("press ctrl-c to stop");
@@ -108,7 +38,7 @@ binrpc.prototype = {
     server: {},
     serverRunning: false,
     request: function (port, method, data, callback) {
-        logger.verbose("binrpc -> "+this.options.ccuIp+":"+port+" request " + method + " " + JSON.stringify(data));
+        logger.verbose("binrpc --> "+this.options.ccuIp+":"+port+" request " + method + " " + JSON.stringify(data));
         this.sendRequest(port, this.buildRequest(method, data), callback);
     },
     buildRequest: function (method, data) {
@@ -282,12 +212,12 @@ binrpc.prototype = {
 
         switch (vars.msgType) {
             case 0:
-                logger.error("binrpc <- wrong msgType in response");
+                logger.error("binrpc <-- wrong msgType in response");
                 logger.silly(this.parseData(vars.body));
                 break;
             case 1:
                 var res = this.parseData(vars.body);
-                logger.verbose("binrpc <- response "+name+" " + JSON.stringify(res.content));
+                logger.verbose("binrpc <-- response "+name+" " + JSON.stringify(res.content));
                 logger.silly(res.content);
                 break;
         }
@@ -342,10 +272,10 @@ binrpc.prototype = {
                 switch (method) {
                     case "system.multicall":
                         data = res[0];
-                        logger.verbose("binrpc <- "+name+" system.multicall " + data.length);
+                        logger.verbose("binrpc <-- "+name+" system.multicall " + data.length);
                          for (var i = 0; i < data.length; i++) {
                             if (this.methods[data[i].methodName]) {
-                                logger.verbose("binrpc <- "+name+" " + data[i].methodName + " " + JSON.stringify(data[i].params));
+                                logger.verbose("binrpc <-- "+name+" " + data[i].methodName + " " + JSON.stringify(data[i].params));
                                 this.methods[data[i].methodName](data[i].params);
                             } else {
                                 logger.warn("method " + data[i].methodName + " undefined");
@@ -356,9 +286,9 @@ binrpc.prototype = {
                         break;
 
                     default:
-                        logger.verbose("binrpc <- "+name+" " + method + " " + JSON.stringify(res));
+                        logger.verbose("binrpc <-- "+name+" " + method + " " + JSON.stringify(res));
                         if (this.methods[method]) {
-                            this.methods[method](res.params);
+                            this.methods[method](res);
                         } else {
                             logger.error("method " + req.method.toString() + " undefined");
                         }
@@ -409,7 +339,7 @@ binrpc.prototype = {
                 var name = client.remoteAddress+":"+client.remotePort;
                 client.end();
                 var res = that.parseResponse(response, name);
-                logger.verbose('binrpc -> '+name+ " closing connection");
+                logger.verbose('binrpc --> '+name+ " closing connection");
                 if (callback) {
                     callback(res, name);
                 }
@@ -458,10 +388,10 @@ binrpc.prototype = {
                 var length;
                 var name = c.remoteAddress + ":" + c.remotePort
 
-               logger.verbose('binrpc <- '+name+' connected');
+               logger.verbose('binrpc <-- '+name+' connected');
 
                 c.on('end', function() {
-                   logger.verbose('binrpc <- '+name+' disconnected');
+                   logger.verbose('binrpc <-- '+name+' disconnected');
                 });
 
                 c.on('data', function (data) {
@@ -499,7 +429,7 @@ binrpc.prototype = {
                                 .word32be(0)
                                 .buffer()
                             ;
-                       logger.verbose("binrpc -> "+name+" response ''");
+                       logger.verbose('binrpc --> '+name+' response ""');
                        logger.silly(buf);
                         c.write(buf);
                     }
