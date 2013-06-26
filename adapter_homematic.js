@@ -3,13 +3,10 @@ var binrpc = require("./binrpc.js");
 
 var jayson = require("jayson");
 
-// create a client
 var homenode = jayson.client.http({
     port: 2999,
     hostname: 'localhost'
 });
-
-
 
 
 var hm1 = new binrpc({
@@ -19,13 +16,16 @@ var hm1 = new binrpc({
     methods: {
         event: function (obj) {
             // invoke "add"
-                homenode.request('setValue', [obj[0]+"."+obj[1]+"."+obj[2], obj[3]], function(err, error, response) {
+                logger.verbose("jsonrpc -> localhost:2999 setValue "+"hm1."+obj[0]+"."+obj[1]+"."+obj[2]+" "+obj[3]+" "+true);
+                homenode.request('setValue', ["hm1."+obj[0]+"."+obj[1]+"."+obj[2], obj[3], true], function(err, error, response) {
 
                 });
 
         },
         newDevices: function (data) {
+                homenode.request('setMetaAdapter', ["hm1."+data[0], data[1]], function(err, error, response) {
 
+                });
 
         }
     }

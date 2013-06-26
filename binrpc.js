@@ -1,3 +1,13 @@
+/**
+ *      HomeMatic BIN-RPC Protocol for Node.js
+ *
+ *      Copyright (c) 2013 http://hobbyquaker.github.io
+ *
+ *      CC BY-NC 3.0
+ *
+ *      Kommerzielle Nutzung nicht gestattet!
+ *
+ */
 var Put = require('put'),
     net = require('net'),
     binary = require('binary');
@@ -17,11 +27,11 @@ var logger = require('./logger.js');
     */
 
 var binrpc = function(options) {
-    logger.info("binrpc.js version "+this.version+" - HomeMatic xmlrpc_bin adapter for HomeNodes");
+    logger.info("HomeMatic BIN-RPC");
     logger.info("press ctrl-c to stop");
 
     logger.verbose("Copyright (c) 2013 hobbyquaker");
-    logger.verbose("Licensed under CC-BY-NC");
+    logger.verbose("Licensed under CC BY-NC 3.0");
 
     var that = this;
     this.options = options;
